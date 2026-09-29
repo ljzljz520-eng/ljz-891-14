@@ -3,12 +3,15 @@ namespace Controllers;
 
 use Config\Database;
 use PDO;
+use Services\Auth;
 
 class LicenseController {
     private $db;
+    private $auth;
 
     public function __construct($db) {
         $this->db = $db;
+        $this->auth = new Auth($db);
     }
 
     // Public Query
@@ -62,8 +65,10 @@ class LicenseController {
         }
     }
 
-    // Admin: List All
+    // Admin: List All —— 任意启用管理员（普通/超级）可访问
     public function listAll() {
+        if ($this->auth->requireLogin() === null) return;
+
         $query = "SELECT * FROM licenses ORDER BY created_at DESC";
         $stmt = $this->db->prepare($query);
         $stmt->execute();
@@ -71,13 +76,19 @@ class LicenseController {
         echo json_encode($rows);
     }
 
-    // Admin: Create
+    // Admin: Create —— 任意启用管理员可访问
     public function create() {
-        $data = json_decode(file_get_contents("php://input"));
-        // Need: qq, owner_name, product_name, upline, expiration_date
+        if ($this->auth->requireLogin() === null) return;
+
+        $data = json_decode(file_get_contents("php://input")) ?: new \stdClass();
+        if (!isset($data->qq, $data->owner_name, $data->product_name, $data->upline, $data->expiration_date)) {
+            http_response_code(400);
+            echo json_encode(["message" => "授权信息不完整"]);
+            return;
+        }
         $query = "INSERT INTO licenses (qq, owner_name, product_name, upline, expiration_date) VALUES (:qq, :owner, :product, :upline, :exp)";
         $stmt = $this->db->prepare($query);
-        
+
         $params = [
             ":qq" => $data->qq,
             ":owner" => $data->owner_name,
@@ -85,7 +96,7 @@ class LicenseController {
             ":upline" => $data->upline,
             ":exp" => $data->expiration_date
         ];
-        
+
         if($stmt->execute($params)) {
              echo json_encode(["message" => "Created successfully"]);
         } else {
@@ -93,11 +104,17 @@ class LicenseController {
              echo json_encode(["message" => "Create failed"]);
         }
     }
-    
-    // Admin: Delete
+
+    // Admin: Delete —— 任意启用管理员可访问
     public function delete() {
-         $data = json_decode(file_get_contents("php://input"));
-         if(!isset($data->id)) { return; }
+         if ($this->auth->requireLogin() === null) return;
+
+         $data = json_decode(file_get_contents("php://input")) ?: new \stdClass();
+         if(!isset($data->id)) {
+             http_response_code(400);
+             echo json_encode(["message" => "缺少ID"]);
+             return;
+         }
          $query = "DELETE FROM licenses WHERE id = :id";
          $stmt = $this->db->prepare($query);
          $stmt->bindParam(":id", $data->id);
@@ -107,7 +124,7 @@ class LicenseController {
 
     // Update Flow: Step 1 - Send Code
     public function sendVerificationCode() {
-        $data = json_decode(file_get_contents("php://input"));
+        $data = json_decode(file_get_contents("php://input")) ?: new \stdClass();
         $qq = $data->qq;
         $email = $qq . "@qq.com";
         
@@ -168,7 +185,7 @@ class LicenseController {
 
     // Update Flow: Step 2 - Verify & Update
     public function update() {
-        $data = json_decode(file_get_contents("php://input"));
+        $data = json_decode(file_get_contents("php://input")) ?: new \stdClass();
         // Expect: qq, code, new_owner, new_product...
         
         $email = $data->qq . "@qq.com";

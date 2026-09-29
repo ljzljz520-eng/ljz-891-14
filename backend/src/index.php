@@ -15,6 +15,7 @@ if (file_exists('vendor/autoload.php')) {
 } else {
     // Fallback if composer not run (should not happen in Docker)
     include_once './Config/Database.php';
+    include_once './Services/Auth.php';
     include_once './Controllers/AuthController.php';
     include_once './Controllers/LicenseController.php';
 }
@@ -63,7 +64,11 @@ elseif ($uri === '/api/license/delete' && $_SERVER['REQUEST_METHOD'] === 'POST')
     $license = new LicenseController($db);
     $license->delete();
 }
-// Admin Management Routes
+// Admin Management Routes (均要求登录，管理员管理类接口在 Controller 内再校验超级管理员)
+elseif ($uri === '/api/auth/me' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    $auth = new AuthController($db);
+    $auth->me();
+}
 elseif ($uri === '/api/auth/list' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     $auth = new AuthController($db);
     $auth->list();
@@ -72,9 +77,17 @@ elseif ($uri === '/api/auth/create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $auth = new AuthController($db);
     $auth->create();
 }
-elseif ($uri === '/api/auth/delete' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+elseif ($uri === '/api/auth/reset-password' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $auth = new AuthController($db);
-    $auth->delete();
+    $auth->resetPassword();
+}
+elseif ($uri === '/api/auth/set-active' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $auth = new AuthController($db);
+    $auth->setActive();
+}
+elseif ($uri === '/api/auth/login-logs' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    $auth = new AuthController($db);
+    $auth->loginLogs();
 }
 else {
     http_response_code(404);

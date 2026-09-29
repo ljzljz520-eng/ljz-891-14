@@ -23,6 +23,9 @@ services:
     restart: always
     ports:
       - "8891:80"
+    environment:
+      # token 签名密钥：生产环境务必改为随机长字符串
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:-please-change-this-to-a-long-random-secret}
     volumes:
       - ./backend/src:/var/www/html
     depends_on:
