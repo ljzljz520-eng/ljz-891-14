@@ -17,6 +17,26 @@ services:
     networks:
       - app_network
 
+  migrate:
+    image: mysql:8.0
+    container_name: auth_migrate
+    depends_on:
+      - db
+    volumes:
+      - ./db/migrate.sql:/migrate.sql:ro
+    entrypoint: [""]
+    # 等待数据库就绪后执行幂等迁移（新库执行亦无副作用）
+    command: >
+      bash -c "
+        for i in $$(seq 1 30); do
+          mysql -hdb -uroot -proot auth_system < /migrate.sql && break;
+          echo 'waiting for database...'; sleep 2;
+        done
+      "
+    restart: "no"
+    networks:
+      - app_network
+
   backend:
     build: ./backend
     container_name: auth_backend

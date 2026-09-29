@@ -1,4 +1,9 @@
 RewriteEngine On
+
+# 透传 Bearer Token，避免部分 Apache/FPM 环境丢弃 Authorization 头
+RewriteCond %{HTTP:Authorization} ^(.+)$
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%0]
+
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]

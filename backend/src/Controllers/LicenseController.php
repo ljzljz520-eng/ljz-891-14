@@ -3,12 +3,15 @@ namespace Controllers;
 
 use Config\Database;
 use PDO;
+use Services\Auth;
 
 class LicenseController {
     private $db;
+    private $auth;
 
     public function __construct($db) {
         $this->db = $db;
+        $this->auth = new Auth($db);
     }
 
     // Public Query
@@ -62,8 +65,9 @@ class LicenseController {
         }
     }
 
-    // Admin: List All
+    // Admin: List All（需登录，普通管理员及以上）
     public function listAll() {
+        $this->auth->authenticate();
         $query = "SELECT * FROM licenses ORDER BY created_at DESC";
         $stmt = $this->db->prepare($query);
         $stmt->execute();
@@ -71,8 +75,9 @@ class LicenseController {
         echo json_encode($rows);
     }
 
-    // Admin: Create
+    // Admin: Create（需登录，普通管理员及以上）
     public function create() {
+        $this->auth->authenticate();
         $data = json_decode(file_get_contents("php://input"));
         // Need: qq, owner_name, product_name, upline, expiration_date
         $query = "INSERT INTO licenses (qq, owner_name, product_name, upline, expiration_date) VALUES (:qq, :owner, :product, :upline, :exp)";
@@ -94,8 +99,9 @@ class LicenseController {
         }
     }
     
-    // Admin: Delete
+    // Admin: Delete（需登录，普通管理员及以上）
     public function delete() {
+         $this->auth->authenticate();
          $data = json_decode(file_get_contents("php://input"));
          if(!isset($data->id)) { return; }
          $query = "DELETE FROM licenses WHERE id = :id";

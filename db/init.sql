@@ -5,11 +5,28 @@ CREATE DATABASE IF NOT EXISTS auth_system CHARACTER SET utf8mb4 COLLATE utf8mb4_
 USE auth_system;
 
 -- Admins Table
+-- role: 'super_admin' (超级管理员) | 'admin' (普通管理员)
+-- is_active: 1 启用 / 0 停用
 CREATE TABLE IF NOT EXISTS admins (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    role ENUM('super_admin', 'admin') NOT NULL DEFAULT 'admin',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Login Logs Table (登录日志：账号、时间、IP)
+CREATE TABLE IF NOT EXISTS login_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL COMMENT '登录账号',
+    ip VARCHAR(45) DEFAULT NULL COMMENT '登录IP(兼容IPv6)',
+    success BOOLEAN NOT NULL DEFAULT TRUE COMMENT '是否登录成功',
+    fail_reason VARCHAR(100) DEFAULT NULL COMMENT '失败原因',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '登录时间',
+    INDEX idx_username (username),
+    INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Licenses Table
@@ -37,9 +54,10 @@ CREATE TABLE IF NOT EXISTS verification_codes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Seed Data (Test Accounts)
--- Password is '123456' hashed with BCRYPT (Cost 10)
-INSERT INTO admins (username, password) VALUES 
-('admin', '$2y$10$eLYd0HGc9JM0qxzPkpLtDuL1UZRAS6XAwgVNO7oL9R0M/f/6bkEcW'); 
+-- Passwords are '123456' hashed with BCRYPT (Cost 10)
+INSERT INTO admins (username, password, role, is_active) VALUES
+('admin', '$2y$10$eLYd0HGc9JM0qxzPkpLtDuL1UZRAS6XAwgVNO7oL9R0M/f/6bkEcW', 'super_admin', TRUE),
+('operator', '$2y$10$eLYd0HGc9JM0qxzPkpLtDuL1UZRAS6XAwgVNO7oL9R0M/f/6bkEcW', 'admin', TRUE);
 
 -- Seed Data (Sample Licenses)
 INSERT INTO licenses (qq, owner_name, product_name, upline, expiration_date) VALUES 
